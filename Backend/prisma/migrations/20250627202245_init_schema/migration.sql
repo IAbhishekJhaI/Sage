@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "User" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
     "password" TEXT NOT NULL,
@@ -9,18 +9,18 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "Post" (
-    "id" TEXT NOT NULL,
+CREATE TABLE "Blog" (
+    "id" SERIAL NOT NULL,
+    "authorId" INTEGER NOT NULL,
     "title" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "published" BOOLEAN NOT NULL DEFAULT false,
-    "authorId" TEXT NOT NULL,
 
-    CONSTRAINT "Post_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Blog_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- AddForeignKey
-ALTER TABLE "Post" ADD CONSTRAINT "Post_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Blog" ADD CONSTRAINT "Blog_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
