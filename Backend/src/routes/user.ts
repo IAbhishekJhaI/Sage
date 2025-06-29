@@ -7,36 +7,45 @@ import { signupInput, signinInput } from "@mysticalbun/sage-common"
 export const userRouter = new Hono<{
 	Bindings: {
 		DATABASE_URL: string,
-        JWT_SECRET: string,
+    JWT_SECRET: string,
 	}
     Variables: {
         userId: string
     }
 }>();
 
-userRouter.use('/api/v1/blog/*', async(c, next) => {
-  const jwt = c.req.header('Authorization');
-  if(!jwt){
-    c.status(401);
-    return c.json({error: "unauthorized"});
+userRouter.post('/signup', async (c) => {
+  const body =await c.req.json();
+  const { success } = signupInput.safeParse(body);
+  if(!success){
+    c.status(411);
+    return c.json({
+        message: "invalid input"
+    });
   }
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
 
-  //Bearer Token logic
-  const token = jwt.split('')[1];
-
-  const payload = await verify(token, c.env.JWT_SECRET);
-  if(!payload){
-    c.status(401);
-    return c.json({error: "unauthorized"});
-    }
-  c.set('userId', String(payload.id));
-  await next()
+  try{
+    const user = await prisma.user.create({
+      data:{
+        email: body.email,
+        password: body.password,
+        name: body.name
+      },
+    });
+    const jwt = await sign({id: user.id}, c.env.JWT_SECRET);
+    return c.text(jwt);
+  } catch(e) {
+    c.status(411);
+    return c.json({e});
+  }
 })
-
 
 userRouter.post('/signin', async (c)=>{
   const body = await c.req.json();
-  const { success } = signupInput.safeParse(body);
+  const { success } = signinInput.safeParse(body);
   if(!success){
     c.status(411);
     return c.json({
@@ -61,38 +70,9 @@ userRouter.post('/signin', async (c)=>{
   }
 
   const jwt = await sign({id: user.id}, c.env.JWT_SECRET);
-  return c.json({jwt});
+  return c.text(jwt);
   } catch (e) {
     c.status(411);
     return c.json({error: "Invalid: error signing in"});
-  }
-})
-
-userRouter.post('/signup', async (c) => {
-  const body =await c.req.json();
-  const { success } = signupInput.safeParse(body);
-  if(!success){
-    c.status(411);
-    return c.json({
-        message: "invalid input"
-    });
-  }
-  const prisma = new PrismaClient({
-    datasourceUrl: c.env.DATABASE_URL,
-  }).$extends(withAccelerate());
-
-  try{
-    const user = await prisma.user.create({
-      data:{
-        email: body.email,
-        password: body.password,
-        name: body.name
-      },
-    });
-    const jwt = await sign({id: user.id}, c.env.JWT_SECRET);
-    return c.json({jwt});
-  } catch(e) {
-    c.status(403);
-    return c.json({error: "error while signing up"});
   }
 })
